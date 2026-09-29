@@ -1,6 +1,7 @@
 """Open a SQLite database so that nothing run through it can change data."""
 
 import sqlite3
+from dataclasses import dataclass
 from pathlib import Path
 
 ALLOWED_ACTIONS = {sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ, sqlite3.SQLITE_FUNCTION}
@@ -32,3 +33,18 @@ def connect_readonly(path: str | Path) -> sqlite3.Connection:
     # for every statement, so it does not depend on parsing the SQL ourselves.
     conn.set_authorizer(_authorize)
     return conn
+
+
+@dataclass
+class Result:
+    columns: list[str]
+    rows: list[tuple]
+    truncated: bool
+
+
+def run_query(conn: sqlite3.Connection, sql: str, max_rows: int = 200) -> Result:
+    # execute() refuses more than one statement, so "SELECT 1; DROP ..." never runs.
+    cur = conn.execute(sql)
+    columns = [d[0] for d in cur.description or []]
+    rows = cur.fetchmany(max_rows + 1)
+    return Result(columns, rows[:max_rows], truncated=len(rows) > max_rows)
