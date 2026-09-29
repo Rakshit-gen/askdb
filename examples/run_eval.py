@@ -11,6 +11,7 @@ import json
 import sqlite3
 import tempfile
 import time
+from collections import Counter
 from pathlib import Path
 
 from make_demo_db import build
@@ -28,9 +29,10 @@ def norm(v):
 def matches(gold: list[tuple], got: list[tuple]) -> bool:
     if len(gold) != len(got):
         return False
-    remaining = [set(map(norm, r)) for r in got]
+    # Counters rather than sets, so a gold row (5, 5) needs two 5s in the answer.
+    remaining = [Counter(map(norm, r)) for r in got]
     for row in gold:
-        want = set(map(norm, row))
+        want = Counter(map(norm, row))
         hit = next((i for i, r in enumerate(remaining) if want <= r), None)
         if hit is None:
             return False
