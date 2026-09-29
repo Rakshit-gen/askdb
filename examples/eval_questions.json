@@ -1,0 +1,14 @@
+[
+  {"q": "How many customers are there?", "gold": "SELECT count(*) FROM customers"},
+  {"q": "How many customers are in each country?", "gold": "SELECT country, count(*) FROM customers GROUP BY country"},
+  {"q": "How many orders were cancelled?", "gold": "SELECT count(*) FROM orders WHERE status = 'cancelled'"},
+  {"q": "List the products in the kitchen category.", "gold": "SELECT name FROM products WHERE category = 'kitchen'"},
+  {"q": "What is the most expensive product?", "gold": "SELECT name FROM products ORDER BY price_cents DESC LIMIT 1"},
+  {"q": "How many orders were placed in 2025?", "gold": "SELECT count(*) FROM orders WHERE placed_on BETWEEN '2025-01-01' AND '2025-12-31'"},
+  {"q": "What is the total number of units sold per product category, counting only delivered orders?", "gold": "SELECT p.category, sum(oi.quantity) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id WHERE o.status = 'delivered' GROUP BY p.category"},
+  {"q": "What was the total revenue in dollars from delivered orders?", "gold": "SELECT round(sum(oi.quantity * p.price_cents) / 100.0, 2) FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id WHERE o.status = 'delivered'"},
+  {"q": "How many customers have never placed an order?", "gold": "SELECT count(*) FROM customers WHERE id NOT IN (SELECT customer_id FROM orders)"},
+  {"q": "Which month in 2025 had the most orders? Give the month as YYYY-MM.", "gold": "SELECT strftime('%Y-%m', placed_on) AS m FROM orders WHERE placed_on LIKE '2025-%' GROUP BY m ORDER BY count(*) DESC LIMIT 1"},
+  {"q": "What is the average number of items (sum of quantities) per order?", "gold": "SELECT round(avg(t), 2) FROM (SELECT sum(quantity) AS t FROM order_items GROUP BY order_id)"},
+  {"q": "Which customer id spent the most on delivered orders?", "gold": "SELECT o.customer_id FROM order_items oi JOIN orders o ON o.id = oi.order_id JOIN products p ON p.id = oi.product_id WHERE o.status = 'delivered' GROUP BY o.customer_id ORDER BY sum(oi.quantity * p.price_cents) DESC LIMIT 1"}
+]
