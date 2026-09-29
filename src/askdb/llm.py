@@ -21,7 +21,9 @@ Rules:
 - Return a single statement in a ```sql block and nothing else.
 - Read only. Never write INSERT, UPDATE, DELETE, CREATE, DROP, ATTACH or PRAGMA.
 - Give columns readable names with AS when you compute them.
-- If the question asks for "top" or "most" without a number, return 10 rows.
+- If the question asks for one thing ("the most expensive product", "which month"),
+  return only that row with LIMIT 1. If it asks for a plural "top" list without a
+  number, return 10 rows.
 
 Schema:
 {schema}"""
