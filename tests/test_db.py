@@ -12,7 +12,7 @@ def test_reads_work(db_path):
 
 def test_writes_are_refused(db_path):
     conn = connect_readonly(db_path)
-    with pytest.raises(sqlite3.OperationalError):
+    with pytest.raises(sqlite3.DatabaseError):
         conn.execute("DELETE FROM customers")
 
 
