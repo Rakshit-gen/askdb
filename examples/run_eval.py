@@ -53,10 +53,13 @@ def main() -> int:
                 answer = ask(conn, item["q"], model)
                 ok = matches(gold, answer.result.rows)
                 tries = answer.tries
-            except GaveUp:
-                ok, tries = False, "gave up"
+            except GaveUp as e:
+                answer, ok, tries = None, False, f"gave up ({e.error})"
             correct += ok
             print(f"{'PASS' if ok else 'FAIL'}  tries={tries}  {item['q']}")
+            if not ok and answer is not None:
+                print("      " + answer.sql.replace("\n", "\n      "))
+                print(f"      got {answer.result.rows[:5]}, want {gold[:5]}")
         elapsed = time.monotonic() - started
     print(f"\n{correct}/{len(questions)} correct in {elapsed:.1f}s")
     return 0 if correct == len(questions) else 1
