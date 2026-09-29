@@ -30,5 +30,22 @@ def describe_table(conn: sqlite3.Connection, table: str) -> str:
     return f"TABLE {table} (\n  " + ",\n  ".join(cols) + "\n)"
 
 
-def describe(conn: sqlite3.Connection) -> str:
-    return "\n\n".join(describe_table(conn, t) for t in table_names(conn))
+def sample_rows(conn: sqlite3.Connection, table: str, n: int) -> str:
+    cur = conn.execute(f"SELECT * FROM {quote(table)} LIMIT {int(n)}")
+    header = [d[0] for d in cur.description]
+    lines = [" | ".join(header)]
+    for row in cur:
+        # Long text values would crowd out the schema, so cut them short.
+        lines.append(" | ".join(str(v)[:40] for v in row))
+    return "\n".join(lines)
+
+
+def describe(conn: sqlite3.Connection, samples: int = 3) -> str:
+    """Schema plus a few rows per table, so the model sees value formats like dates."""
+    blocks = []
+    for t in table_names(conn):
+        block = describe_table(conn, t)
+        if samples:
+            block += f"\n-- first {samples} rows of {t}:\n" + sample_rows(conn, t, samples)
+        blocks.append(block)
+    return "\n\n".join(blocks)
