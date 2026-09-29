@@ -58,7 +58,7 @@ def main(argv: list[str] | None = None, model=None) -> int:
     try:
         answer = ask(conn, args.question, model, max_rows=args.rows, timeout_s=args.timeout)
     except GaveUp as e:
-        print(f"askdb: {e}\n\nlast SQL tried:\n{e.sql}", file=sys.stderr)
+        print(f"askdb: {e}\n\nlast reply from the model:\n{e.sql}", file=sys.stderr)
         return 2
     except QueryTimeout as e:
         print(f"askdb: {e}", file=sys.stderr)

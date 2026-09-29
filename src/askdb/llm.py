@@ -77,6 +77,8 @@ def ask(
         # Keep the raw reply: the retry history must show the model what it really
         # said, not the previous attempt's SQL or prose dressed up as SQL.
         reply = chain.invoke(inputs)
+        # If extraction fails, report the reply itself, not SQL from an earlier try.
+        sql = reply.strip()
         try:
             sql = extract_sql(reply)
             return Answer(sql, run_query(conn, sql, max_rows, timeout_s), tries)

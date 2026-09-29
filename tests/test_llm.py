@@ -91,3 +91,11 @@ def test_retry_history_shows_what_the_model_actually_said(db_path):
     third_call = model.calls[2]
     assert third_call[-2].content == "Sorry, I cannot answer that."
     assert "SELECT nope" not in third_call[-2].content
+
+
+def test_giving_up_reports_the_last_reply_not_an_older_query(db_path):
+    model = FakeListChatModel(responses=[fenced("SELECT nope FROM orders"), "I am not sure."])
+    with pytest.raises(GaveUp) as info:
+        ask(connect_readonly(db_path), "?", model, max_tries=2)
+    assert info.value.sql == "I am not sure."
+    assert "nope" not in info.value.sql
