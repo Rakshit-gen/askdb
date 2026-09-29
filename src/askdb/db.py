@@ -23,6 +23,10 @@ def _authorize(action, arg1, arg2, db_name, trigger):
     return sqlite3.SQLITE_DENY
 
 
+class NotADatabaseError(ValueError):
+    pass
+
+
 def connect_readonly(path: str | Path) -> sqlite3.Connection:
     path = Path(path)
     if not path.is_file():
@@ -33,6 +37,12 @@ def connect_readonly(path: str | Path) -> sqlite3.Connection:
     # files), temp tables and pragmas that change settings. It runs inside sqlite
     # for every statement, so it does not depend on parsing the SQL ourselves.
     conn.set_authorizer(_authorize)
+    try:
+        # sqlite opens any file lazily; the first read is what fails on a non-database.
+        conn.execute("SELECT count(*) FROM sqlite_master").fetchone()
+    except sqlite3.DatabaseError as e:
+        conn.close()
+        raise NotADatabaseError(f"{path} is not a SQLite database ({e})") from e
     return conn
 
 

@@ -4,7 +4,7 @@ import argparse
 import os
 import sys
 
-from askdb.db import QueryTimeout, connect_readonly
+from askdb.db import NotADatabaseError, QueryTimeout, connect_readonly
 from askdb.table import format_table
 
 
@@ -39,7 +39,7 @@ def main(argv: list[str] | None = None, model=None) -> int:
 
     try:
         conn = connect_readonly(args.db)
-    except FileNotFoundError as e:
+    except (FileNotFoundError, NotADatabaseError) as e:
         print(f"askdb: {e}", file=sys.stderr)
         return 1
 

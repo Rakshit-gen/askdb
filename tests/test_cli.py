@@ -54,3 +54,10 @@ def test_non_positive_limits_are_rejected(db_path, flag, capsys):
         main([str(db_path), "?", *flag], model=fake("SELECT 1"))
     assert info.value.code == 2
     assert "must be greater than 0" in capsys.readouterr().err
+
+
+def test_non_database_file_exits_1(tmp_path, capsys):
+    notes = tmp_path / "notes.txt"
+    notes.write_text("just some text, long enough to not look like an empty database file\n" * 20)
+    assert main([str(notes)]) == 1
+    assert "is not a SQLite database" in capsys.readouterr().err
