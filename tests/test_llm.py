@@ -2,7 +2,7 @@ import pytest
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 
 from askdb.db import connect_readonly, run_query
-from askdb.llm import GaveUp, ask, build_sql_chain
+from askdb.llm import Answer, GaveUp, ask, build_sql_chain, summarize
 
 
 def test_sql_chain_returns_clean_sql():
@@ -57,3 +57,21 @@ def test_ask_does_not_retry_writes_into_success(db_path):
     with pytest.raises(GaveUp):
         ask(connect_readonly(db_path), "delete everything", model, max_tries=2)
     assert run_query(connect_readonly(db_path), "SELECT count(*) FROM orders").rows == [(3,)]
+
+
+def test_summarize_passes_the_result_to_the_model(db_path):
+    conn = connect_readonly(db_path)
+    answer = Answer("SELECT name FROM customers", run_query(conn, "SELECT name FROM customers"), 1)
+    model = Recorder(calls=[], responses=["There are three customers: Asha, Ben and Chloe."])
+    text = summarize("who are the customers?", answer, model)
+    assert text == "There are three customers: Asha, Ben and Chloe."
+    sent = model.calls[0][-1].content
+    assert "Result (all rows):\nname\nAsha\nBen\nChloe" in sent
+
+
+def test_summarize_flags_cut_off_results(db_path):
+    conn = connect_readonly(db_path)
+    result = run_query(conn, "SELECT id FROM customers", max_rows=1)
+    model = Recorder(calls=[], responses=["ok"])
+    summarize("ids?", Answer("SELECT id FROM customers", result, 1), model)
+    assert "Result (cut off)" in model.calls[0][-1].content
