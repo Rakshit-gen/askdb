@@ -8,14 +8,15 @@ ALLOWED_ACTIONS = {sqlite3.SQLITE_SELECT, sqlite3.SQLITE_READ, sqlite3.SQLITE_FU
 if hasattr(sqlite3, "SQLITE_RECURSIVE"):
     ALLOWED_ACTIONS.add(sqlite3.SQLITE_RECURSIVE)
 
-# Pragmas that only describe the schema. Reading them is fine, setting them is not.
+# Pragmas that only describe the schema. Their argument is a table or index name,
+# never a setting, so they are safe with any argument.
 ALLOWED_PRAGMAS = {"table_info", "table_xinfo", "foreign_key_list", "index_list", "index_info"}
 
 
 def _authorize(action, arg1, arg2, db_name, trigger):
     if action in ALLOWED_ACTIONS:
         return sqlite3.SQLITE_OK
-    if action == sqlite3.SQLITE_PRAGMA and arg1 in ALLOWED_PRAGMAS and arg2 is None:
+    if action == sqlite3.SQLITE_PRAGMA and arg1 in ALLOWED_PRAGMAS:
         return sqlite3.SQLITE_OK
     return sqlite3.SQLITE_DENY
 
