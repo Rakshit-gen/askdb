@@ -20,3 +20,14 @@ def test_nulls_long_values_and_truncation_note():
 
 def test_empty_result():
     assert format_table(Result(["id"], [], False)) == "id\n--\n(no rows)"
+
+
+def test_nulls_do_not_stop_a_number_column_from_aligning_right():
+    out = format_table(Result(["name", "total"], [("a", 5), ("bb", None), ("c", 12345)], False))
+    assert out.splitlines() == [
+        "name  total",
+        "----  -----",
+        "a         5",
+        "bb     NULL",
+        "c     12345",
+    ]

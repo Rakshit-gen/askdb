@@ -14,7 +14,11 @@ def format_table(result: Result, max_width: int = 40) -> str:
     body = [[cell(v) for v in row] for row in result.rows]
     widths = [max([len(c)] + [len(r[i]) for r in body]) for i, c in enumerate(result.columns)]
     # Right-align numbers so columns of totals line up.
-    numeric = [all(isinstance(r[i], int | float) for r in result.rows) for i in range(len(widths))]
+    # NULLs are ignored here, so one missing value does not flip a column to text.
+    numeric = [
+        all(isinstance(r[i], int | float) for r in result.rows if r[i] is not None)
+        for i in range(len(widths))
+    ]
 
     def line(values):
         parts = [
