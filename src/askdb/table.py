@@ -12,7 +12,7 @@ def format_table(result: Result, max_width: int = 40) -> str:
         return s if len(s) <= max_width else s[: max_width - 3] + "..."
 
     body = [[cell(v) for v in row] for row in result.rows]
-    widths = [max(len(c), *(len(r[i]) for r in body)) for i, c in enumerate(result.columns)]
+    widths = [max([len(c)] + [len(r[i]) for r in body]) for i, c in enumerate(result.columns)]
     # Right-align numbers so columns of totals line up.
     numeric = [all(isinstance(r[i], int | float) for r in result.rows) for i in range(len(widths))]
 
