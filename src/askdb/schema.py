@@ -8,11 +8,17 @@ def quote(name: str) -> str:
 
 
 def table_names(conn: sqlite3.Connection) -> list[str]:
+    """Tables and views. Views often hold the business logic a question is about."""
     rows = conn.execute(
-        "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' "
-        "ORDER BY name"
+        "SELECT name FROM sqlite_master WHERE type IN ('table', 'view') "
+        "AND name NOT LIKE 'sqlite_%' ORDER BY name"
     )
     return [r[0] for r in rows]
+
+
+def is_view(conn: sqlite3.Connection, name: str) -> bool:
+    row = conn.execute("SELECT type FROM sqlite_master WHERE name = ?", (name,)).fetchone()
+    return row is not None and row[0] == "view"
 
 
 def describe_table(conn: sqlite3.Connection, table: str) -> str:
@@ -27,7 +33,8 @@ def describe_table(conn: sqlite3.Connection, table: str) -> str:
     for row in conn.execute(f"PRAGMA foreign_key_list({quote(table)})"):
         ref_table, from_col, to_col = row[2], row[3], row[4]
         cols.append(f"{from_col} REFERENCES {ref_table}({to_col})")
-    return f"TABLE {table} (\n  " + ",\n  ".join(cols) + "\n)"
+    kind = "VIEW" if is_view(conn, table) else "TABLE"
+    return f"{kind} {table} (\n  " + ",\n  ".join(cols) + "\n)"
 
 
 def sample_rows(conn: sqlite3.Connection, table: str, n: int) -> str:

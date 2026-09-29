@@ -1,3 +1,5 @@
+import sqlite3
+
 from askdb.db import connect_readonly
 from askdb.schema import describe, table_names
 
@@ -21,3 +23,16 @@ def test_describe_includes_sample_rows(db_path):
 
 def test_samples_can_be_turned_off(db_path):
     assert "-- first" not in describe(connect_readonly(db_path), samples=0)
+
+
+def test_views_are_described(db_path):
+    conn = sqlite3.connect(db_path)
+    conn.execute(
+        "CREATE VIEW customer_totals AS SELECT customer_id, sum(total_cents) AS spent "
+        "FROM orders GROUP BY customer_id"
+    )
+    conn.commit()
+    conn.close()
+    text = describe(connect_readonly(db_path))
+    assert "VIEW customer_totals (\n  customer_id INTEGER,\n  spent ANY\n)" in text
+    assert "-- first 3 rows of customer_totals:" in text
