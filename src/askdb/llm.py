@@ -31,7 +31,8 @@ Schema:
 SQL_HUMAN = "{question}"
 
 
-def build_sql_chain(model: BaseChatModel) -> Runnable:
+def build_reply_chain(model: BaseChatModel) -> Runnable:
+    """Question to the model's raw reply text."""
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", SQL_SYSTEM),
@@ -39,7 +40,11 @@ def build_sql_chain(model: BaseChatModel) -> Runnable:
             MessagesPlaceholder("attempts", optional=True),
         ]
     )
-    return prompt | model | StrOutputParser() | RunnableLambda(extract_sql)
+    return prompt | model | StrOutputParser()
+
+
+def build_sql_chain(model: BaseChatModel) -> Runnable:
+    return build_reply_chain(model) | RunnableLambda(extract_sql)
 
 
 @dataclass
@@ -65,18 +70,21 @@ def ask(
     timeout_s: float = 10.0,
 ) -> Answer:
     """Ask for SQL, run it, and on a sqlite error show the model the error and ask again."""
-    chain = build_sql_chain(model)
+    chain = build_reply_chain(model)
     inputs = {"schema": describe(conn), "question": question, "attempts": []}
     sql = ""
     for tries in range(1, max_tries + 1):
+        # Keep the raw reply: the retry history must show the model what it really
+        # said, not the previous attempt's SQL or prose dressed up as SQL.
+        reply = chain.invoke(inputs)
         try:
-            sql = chain.invoke(inputs)
+            sql = extract_sql(reply)
             return Answer(sql, run_query(conn, sql, max_rows, timeout_s), tries)
         except (sqlite3.Error, NoSQLError) as e:
             error = str(e)
             inputs["attempts"] += [
-                AIMessage(f"```sql\n{sql}\n```"),
-                HumanMessage(f"That query failed with: {error}\nReturn a fixed query."),
+                AIMessage(reply),
+                HumanMessage(f"That failed with: {error}\nReturn a fixed query."),
             ]
     raise GaveUp(sql, error, max_tries)
 

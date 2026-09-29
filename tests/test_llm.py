@@ -75,3 +75,19 @@ def test_summarize_flags_cut_off_results(db_path):
     model = Recorder(calls=[], responses=["ok"])
     summarize("ids?", Answer("SELECT id FROM customers", result, 1), model)
     assert "Result (cut off)" in model.calls[0][-1].content
+
+
+def test_retry_history_shows_what_the_model_actually_said(db_path):
+    model = Recorder(
+        calls=[],
+        responses=[
+            fenced("SELECT nope FROM orders"),
+            "Sorry, I cannot answer that.",
+            fenced("SELECT count(*) FROM orders"),
+        ],
+    )
+    answer = ask(connect_readonly(db_path), "how many orders?", model)
+    assert answer.tries == 3
+    third_call = model.calls[2]
+    assert third_call[-2].content == "Sorry, I cannot answer that."
+    assert "SELECT nope" not in third_call[-2].content
