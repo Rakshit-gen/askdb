@@ -47,7 +47,7 @@ another one.
 
 ## How it works
 
-1. The schema (tables, columns, keys, foreign keys) and three sample rows per
+1. The schema (tables, views, columns, keys, foreign keys) and three sample rows per
    table go into the prompt. The sample rows show the model how dates and codes
    are stored.
 2. The chain `prompt | ChatGroq | StrOutputParser | extract_sql` returns one
