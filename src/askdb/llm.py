@@ -1,5 +1,12 @@
 """Turn a question into SQL with a chat model through LangChain."""
 
+from langchain_core.language_models import BaseChatModel
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import Runnable, RunnableLambda
+
+from askdb.sqltext import extract_sql
+
 SQL_SYSTEM = """You write one SQLite SELECT statement that answers the user's question.
 
 Rules:
@@ -13,3 +20,8 @@ Schema:
 {schema}"""
 
 SQL_HUMAN = "{question}"
+
+
+def build_sql_chain(model: BaseChatModel) -> Runnable:
+    prompt = ChatPromptTemplate.from_messages([("system", SQL_SYSTEM), ("human", SQL_HUMAN)])
+    return prompt | model | StrOutputParser() | RunnableLambda(extract_sql)
