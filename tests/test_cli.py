@@ -1,3 +1,4 @@
+import pytest
 from langchain_core.language_models.fake_chat_models import FakeListChatModel
 
 from askdb.cli import main
@@ -45,3 +46,11 @@ def test_missing_api_key_is_a_clear_error(db_path, capsys, monkeypatch):
     monkeypatch.delenv("GROQ_API_KEY", raising=False)
     assert main([str(db_path), "how many orders?"]) == 1
     assert "GROQ_API_KEY is not set" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("flag", [["--rows", "0"], ["--rows", "-5"], ["--timeout", "0"]])
+def test_non_positive_limits_are_rejected(db_path, flag, capsys):
+    with pytest.raises(SystemExit) as info:
+        main([str(db_path), "?", *flag], model=fake("SELECT 1"))
+    assert info.value.code == 2
+    assert "must be greater than 0" in capsys.readouterr().err

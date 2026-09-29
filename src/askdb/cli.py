@@ -8,14 +8,28 @@ from askdb.db import QueryTimeout, connect_readonly
 from askdb.table import format_table
 
 
+def positive(kind):
+    """argparse type that rejects zero and negative numbers."""
+
+    def parse(text: str):
+        value = kind(text)
+        if value <= 0:
+            raise argparse.ArgumentTypeError(f"must be greater than 0, got {text}")
+        return value
+
+    return parse
+
+
 def main(argv: list[str] | None = None, model=None) -> int:
     parser = argparse.ArgumentParser(
         prog="askdb", description="Ask questions about a SQLite database in plain English."
     )
     parser.add_argument("db", help="path to a SQLite file")
     parser.add_argument("question", nargs="?", help="question to ask; omit to print the schema")
-    parser.add_argument("--rows", type=int, default=50, help="max rows to show (default 50)")
-    parser.add_argument("--timeout", type=float, default=10.0, help="seconds per query")
+    parser.add_argument(
+        "--rows", type=positive(int), default=50, help="max rows to show (default 50)"
+    )
+    parser.add_argument("--timeout", type=positive(float), default=10.0, help="seconds per query")
     parser.add_argument("--summary", action="store_true", help="also answer in a sentence")
     parser.add_argument("--sql-only", action="store_true", help="print the SQL without the table")
     args = parser.parse_args(argv)
