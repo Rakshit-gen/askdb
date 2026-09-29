@@ -39,3 +39,9 @@ def test_giving_up_exits_2_and_shows_last_sql(db_path, capsys):
 def test_missing_db_exits_1(tmp_path, capsys):
     assert main([str(tmp_path / "x.db"), "?"]) == 1
     assert "no database at" in capsys.readouterr().err
+
+
+def test_missing_api_key_is_a_clear_error(db_path, capsys, monkeypatch):
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    assert main([str(db_path), "how many orders?"]) == 1
+    assert "GROQ_API_KEY is not set" in capsys.readouterr().err

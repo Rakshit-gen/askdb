@@ -1,6 +1,7 @@
 """Command line entry point."""
 
 import argparse
+import os
 import sys
 
 from askdb.db import QueryTimeout, connect_readonly
@@ -33,6 +34,9 @@ def main(argv: list[str] | None = None, model=None) -> int:
         return 0
 
     if model is None:
+        if not os.environ.get("GROQ_API_KEY"):
+            print("askdb: GROQ_API_KEY is not set.", file=sys.stderr)
+            return 1
         from askdb.llm import groq_model
 
         model = groq_model()
