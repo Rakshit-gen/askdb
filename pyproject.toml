@@ -1,0 +1,15 @@
+[project]
+name = "askdb"
+version = "0.1.0"
+description = "Ask questions about a SQLite database in plain English"
+readme = "README.md"
+requires-python = ">=3.11"
+license = "MIT"
+dependencies = []
+
+[project.scripts]
+askdb = "askdb.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
