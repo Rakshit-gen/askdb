@@ -1,6 +1,7 @@
 """Open a SQLite database so that nothing run through it can change data."""
 
 import sqlite3
+import time
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -42,9 +43,26 @@ class Result:
     truncated: bool
 
 
-def run_query(conn: sqlite3.Connection, sql: str, max_rows: int = 200) -> Result:
-    # execute() refuses more than one statement, so "SELECT 1; DROP ..." never runs.
-    cur = conn.execute(sql)
-    columns = [d[0] for d in cur.description or []]
-    rows = cur.fetchmany(max_rows + 1)
+class QueryTimeout(RuntimeError):
+    pass
+
+
+def run_query(
+    conn: sqlite3.Connection, sql: str, max_rows: int = 200, timeout_s: float = 10.0
+) -> Result:
+    # A model can write a cross join that runs for minutes. sqlite calls the progress
+    # handler every N VM steps, and a non-zero return aborts the statement.
+    deadline = time.monotonic() + timeout_s
+    conn.set_progress_handler(lambda: time.monotonic() > deadline, 10_000)
+    try:
+        # execute() refuses more than one statement, so "SELECT 1; DROP ..." never runs.
+        cur = conn.execute(sql)
+        columns = [d[0] for d in cur.description or []]
+        rows = cur.fetchmany(max_rows + 1)
+    except sqlite3.OperationalError as e:
+        if "interrupted" in str(e):
+            raise QueryTimeout(f"query took longer than {timeout_s:g}s") from e
+        raise
+    finally:
+        conn.set_progress_handler(None, 0)
     return Result(columns, rows[:max_rows], truncated=len(rows) > max_rows)
