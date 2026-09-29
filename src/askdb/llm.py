@@ -71,3 +71,30 @@ def ask(
                 HumanMessage(f"That query failed with: {error}\nReturn a fixed query."),
             ]
     raise GaveUp(sql, error, max_tries)
+
+
+SUMMARY_SYSTEM = """You answer a question in one or two plain sentences using only the
+query result given. Say the numbers. If the result is empty, say nothing matched.
+If the result was cut off, say the answer covers only the rows shown."""
+
+SUMMARY_HUMAN = """Question: {question}
+
+SQL: {sql}
+
+Result ({note}):
+{table}"""
+
+
+def summarize(question: str, answer: Answer, model: BaseChatModel, max_rows: int = 30) -> str:
+    rows = answer.result.rows[:max_rows]
+    table = "\n".join([" | ".join(answer.result.columns)] + [" | ".join(map(str, r)) for r in rows])
+    note = (
+        "cut off" if answer.result.truncated or len(answer.result.rows) > max_rows else "all rows"
+    )
+    prompt = ChatPromptTemplate.from_messages(
+        [("system", SUMMARY_SYSTEM), ("human", SUMMARY_HUMAN)]
+    )
+    chain = prompt | model | StrOutputParser()
+    return chain.invoke(
+        {"question": question, "sql": answer.sql, "note": note, "table": table}
+    ).strip()
