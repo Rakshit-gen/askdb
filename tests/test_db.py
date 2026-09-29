@@ -2,7 +2,7 @@ import sqlite3
 
 import pytest
 
-from askdb.db import connect_readonly, run_query
+from askdb.db import QueryTimeout, connect_readonly, run_query
 
 
 def test_reads_work(db_path):
@@ -66,3 +66,17 @@ def test_run_query_caps_rows(db_path):
 def test_second_statement_never_runs(db_path):
     with pytest.raises(sqlite3.ProgrammingError):
         run_query(connect_readonly(db_path), "SELECT 1; DELETE FROM customers")
+
+
+def test_slow_query_is_stopped(db_path):
+    endless = "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n) SELECT max(i) FROM n"
+    with pytest.raises(QueryTimeout):
+        run_query(connect_readonly(db_path), endless, timeout_s=0.2)
+
+
+def test_connection_still_works_after_a_timeout(db_path):
+    conn = connect_readonly(db_path)
+    endless = "WITH RECURSIVE n(i) AS (SELECT 1 UNION ALL SELECT i + 1 FROM n) SELECT max(i) FROM n"
+    with pytest.raises(QueryTimeout):
+        run_query(conn, endless, timeout_s=0.1)
+    assert run_query(conn, "SELECT count(*) FROM orders").rows == [(3,)]
