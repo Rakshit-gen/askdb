@@ -1,5 +1,6 @@
 """Turn a question into SQL with a chat model through LangChain."""
 
+import os
 import sqlite3
 from dataclasses import dataclass
 
@@ -98,3 +99,20 @@ def summarize(question: str, answer: Answer, model: BaseChatModel, max_rows: int
     return chain.invoke(
         {"question": question, "sql": answer.sql, "note": note, "table": table}
     ).strip()
+
+
+# Checked against Groq's model list on 2026-09-29. Override with ASKDB_MODEL.
+DEFAULT_MODEL = "openai/gpt-oss-120b"
+
+
+def groq_model() -> BaseChatModel:
+    from langchain_groq import ChatGroq
+
+    # gpt-oss reasons before answering, and that counts against max_tokens. Low effort
+    # plus a roomy cap keeps the SQL from being cut off.
+    return ChatGroq(
+        model=os.environ.get("ASKDB_MODEL", DEFAULT_MODEL),
+        temperature=0,
+        reasoning_effort="low",
+        max_tokens=4096,
+    )
