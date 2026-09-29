@@ -55,7 +55,12 @@ class GaveUp(RuntimeError):
 
 
 def ask(
-    conn: sqlite3.Connection, question: str, model: BaseChatModel, max_tries: int = 3
+    conn: sqlite3.Connection,
+    question: str,
+    model: BaseChatModel,
+    max_tries: int = 3,
+    max_rows: int = 200,
+    timeout_s: float = 10.0,
 ) -> Answer:
     """Ask for SQL, run it, and on a sqlite error show the model the error and ask again."""
     chain = build_sql_chain(model)
@@ -64,7 +69,7 @@ def ask(
     for tries in range(1, max_tries + 1):
         try:
             sql = chain.invoke(inputs)
-            return Answer(sql, run_query(conn, sql), tries)
+            return Answer(sql, run_query(conn, sql, max_rows, timeout_s), tries)
         except (sqlite3.Error, NoSQLError) as e:
             error = str(e)
             inputs["attempts"] += [
