@@ -70,3 +70,30 @@ This does not rely on the prompt. sqlite enforces it:
 
 Tests cover each of these, and all tests use LangChain's `FakeListChatModel`,
 so `uv run pytest` needs no key and no network.
+
+## Measured vs Claimed
+
+| Claim | Value | How measured | Date |
+|---|---|---|---|
+| Eval questions answered correctly | 12 of 12, on 3 of 3 runs | `uv run python examples/run_eval.py`, `openai/gpt-oss-120b` on Groq, seeded demo database | 2026-09-29 |
+| Same eval before the prompt fix | 9 of 12, on 3 of 3 runs | The prompt told the model to return 10 rows for any "most" question, so singular questions got 10 rows | 2026-09-29 |
+| Wall time for the 12 questions | 37 to 51 s | Same 3 runs, one question at a time | 2026-09-29 |
+
+The eval has 12 questions on one small schema. It checks counts, filters,
+joins, grouping, dates and top 1 lookups. It says nothing about large or messy
+schemas.
+
+## Status
+
+Works:
+
+- Questions over any SQLite file, retry on sqlite errors, row and time limits,
+  optional one line summary.
+
+Known limits:
+
+- SQLite only.
+- The whole schema goes into the prompt. A database with hundreds of tables
+  will not fit, and there is no table selection step yet.
+- A query that times out is not retried.
+- `--summary` sees at most 30 rows, and says so when the result was cut off.
